@@ -33,7 +33,7 @@ rb = ReplayBuffer(BUFFER_SIZE, {"obs": {"shape": (STATE_DIM,)},
                                "next_obs": {"shape": (STATE_DIM,)},
                                "done": {}})
 
-n_episodes=3; max_t=1e3; print_every=2
+n_episodes=1e6; max_t=1e3; print_every=100
 scores_deque = deque(maxlen=print_every)
 scores = []
 
