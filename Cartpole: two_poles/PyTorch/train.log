@@ -1,0 +1,19 @@
+[32;1mLogging data to /tmp/experiments/1585879257/progress.txt[0m
+Traceback (most recent call last):
+  File "td3.py", line 377, in <module>
+    td3(env)
+  File "td3.py", line 172, in td3
+    ac.to(device)
+  File "/home/carlos1506/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 425, in to
+    return self._apply(convert)
+  File "/home/carlos1506/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 201, in _apply
+    module._apply(fn)
+  File "/home/carlos1506/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 201, in _apply
+    module._apply(fn)
+  File "/home/carlos1506/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 201, in _apply
+    module._apply(fn)
+  File "/home/carlos1506/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 223, in _apply
+    param_applied = fn(param)
+  File "/home/carlos1506/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 423, in convert
+    return t.to(device, dtype if t.is_floating_point() else None, non_blocking)
+RuntimeError: CUDA error: all CUDA-capable devices are busy or unavailable
