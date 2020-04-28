@@ -64,11 +64,8 @@ class Agent():
         self.max_action = max_action
         self.sigma = sigma
 
-        '''
         gpu = tf.config.experimental.list_logical_devices('GPU')
         self.device = '/CPU:0' if len(gpu)==0 else "/GPU:0"
-        '''
-        self.device = '/CPU:0'
     
     def get_action(self, 
                    state, 
