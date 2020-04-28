@@ -63,16 +63,12 @@ class Agent():
         self.alpha = alpha
         self.max_action = max_action
         self.sigma = sigma
-        
-        self._it = tf.Variable(0, dtype=tf.int32)
-        
+
+        '''
         gpu = tf.config.experimental.list_logical_devices('GPU')
-        self.device = '/CPU:0' if len(gpu)==0 else gpu[0].name
-        
-        ''' Checkpoint dictionary to use when saving the TensorFlow model '''
-        self._dict = {'Actor': self.pi, 
-                      'Critic': self.critic}
-    
+        self.device = '/CPU:0' if len(gpu)==0 else "/GPU:0"
+        '''
+        self.device = '/CPU:0'
     
     def get_action(self, 
                    state, 
@@ -117,16 +113,8 @@ class Agent():
               done):
         actor_loss, critic_loss, td_errors = self._train_body(
             states, actions, next_states, rewards, done)
-        
-        self._it.assign_add(1)
-        if actor_loss is not None:
-            tf.summary.scalar(name="/actor_loss",
-                              data=actor_loss,
-                              step=self._it.numpy())
-        tf.summary.scalar(name="/critic_loss",
-                          data=critic_loss,
-                          step=self._it.numpy())
-        return td_errors
+                
+        return actor_loss, critic_loss, td_errors
     
     @tf.function
     def _train_body(self, 
@@ -162,10 +150,7 @@ class Agent():
             self._soft_update(self.pi_targ.weights,
                               self.pi.weights,
                               self.tau)
-            
-            ''' Update data in the checkpoint dict '''
-            self._dict['Actor'] = self.pi
-            self._dict['Critic'] = self.critic
+
             
             return actor_loss, critic_loss, td_errors
     

@@ -1,23 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Author: Carlos Montenegro, Control Research Group, Universidad de los Andes
+        (GitHub: camontblanc)
+"""
+
+import os
+import subprocess
+
 from dm_control import suite
 
-from packaging import version
-
-from datetime import datetime
 from collections import deque
 from tqdm import trange
-import matplotlib.pyplot as plt
-
-from bayesian_ddpg import Agent
-from cpprb import ReplayBuffer, PrioritizedReplayBuffer
-from utils.logx import EpochLogger
 
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-print("TensorFlow version: ", tf.__version__)
-assert version.parse(tf.__version__).release[0] >= 2, \
-    "This notebook requires TensorFlow 2.0 or above."
+from bayesian_ddpg import Agent
+from cpprb import ReplayBuffer, PrioritizedReplayBuffer
 
 BUFFER_SIZE = int(1e5)
 STATE_DIM = (5,)
@@ -31,9 +32,6 @@ agent = Agent(state_dim=STATE_DIM,
               action_dim=ACTION_DIM, 
               dropout_on_v=0)
 
-logger_kwargs=dict()
-logger = EpochLogger(**logger_kwargs)
-
 print('Running on ', agent.device)
 
 rb = ReplayBuffer(BUFFER_SIZE, {"obs": {"shape": (STATE_DIM,)},
@@ -42,8 +40,24 @@ rb = ReplayBuffer(BUFFER_SIZE, {"obs": {"shape": (STATE_DIM,)},
                                 "next_obs": {"shape": (STATE_DIM,)},
                                 "done": {}})
 
-n_episodes=1000; max_t=1e3; print_every=5
-scores_deque = deque(maxlen=print_every)
+log_dir="logs/"
+summary_writer = tf.summary.create_file_writer(
+  log_dir + "scalar/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
+
+# Checkpoint-saver
+checkpoint_dir = './training_checkpoints'
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+checkpoint = tf.train.Checkpoint(actor=agent.pi,
+                                 critic=agent.critic,
+                                 actor_optim=agent.pi_optim,
+                                 critic_optim=agent.critic_optim)
+
+cmd = 'tensorboard dev upload --logdir ' + log_dir
+subprocess.call(cmd)
+
+n_episodes=1000; max_t=1e3; save_every=2
+scores_deque = deque(maxlen=save_every)
+
 
 prevScore = 0
 for i_episode in trange(1, int(n_episodes)+1):
@@ -66,7 +80,18 @@ for i_episode in trange(1, int(n_episodes)+1):
             states = data['obs']; actions = data['act']; rewards = data['rew']
             next_states = data['next_obs']; dones = data['done']
             
-            agent.train(states, actions, next_states, rewards, dones)
+            actor_loss, critic_loss, _ = agent.train(states, 
+                                                     actions, 
+                                                     next_states, 
+                                                     rewards, 
+                                                     dones)
+            with summary_writer.as_default():
+                tf.summary.scalar(name="actor_loss",
+                                  data=actor_loss,
+                                  step=t)
+                tf.summary.scalar(name="critic_loss",
+                                  data=critic_loss,
+                                  step=t)
         
         # Save experience / reward
         else:       
@@ -82,18 +107,12 @@ for i_episode in trange(1, int(n_episodes)+1):
         if done:
             break
     
-    scores_deque.append(score)
+    with summary_writer.as_default():
+        tf.summary.scalar(name="EpRet",
+                          data=score,
+                          step=i_episode)
     
-    if i_episode % print_every == 0:
+    if i_episode % save_every == 0:
+        checkpoint.save(file_prefix = checkpoint_prefix)
         
-        # Log info about epoch
-        logger.log_tabular('Episode', i_episode)
-        logger.log_tabular('EpScore', score)
-        logger.log_tabular('PrevScore', prevScore)
-        logger.log_tabular('EpLen (current)', t)
-        
-        # Save models
-        paths = logger.tf_simple_save(agent)
-                
-        prevScore = score
-        logger.dump_tabular()
+checkpoint.save(file_prefix = checkpoint_prefix)
