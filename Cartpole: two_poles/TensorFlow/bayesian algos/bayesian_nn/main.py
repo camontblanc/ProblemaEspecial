@@ -1,9 +1,5 @@
 from dm_control import suite
 
-import cv2
-import glob
-from PIL import Image
-import subprocess
 from packaging import version
 
 from datetime import datetime
